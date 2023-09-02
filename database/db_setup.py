@@ -28,7 +28,7 @@ def create_users_table(conn):
         user_id INTEGER PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
-        initial_balance REAL DEFAULT 0
+        balance REAL DEFAULT 0
     );
     """
     try:
@@ -56,6 +56,15 @@ def create_transactions_table(conn):
         c.execute(transactions_table_query)
     except sqlite3.Error as e:
         print(e)
+
+def drop_users_table(database_path):
+    conn = sqlite3.connect(database_path)
+    cur = conn.cursor()
+    cur.execute("DROP TABLE users;")
+    conn.commit()
+    conn.close()
+
+
 
 if __name__ == '__main__':
     setup_database()

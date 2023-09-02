@@ -6,7 +6,7 @@ def hash_password(password):
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode('utf-8'), salt)
 
-def add_user(conn, username, password, initial_balance=0.0):
+def add_user(conn, username, password, balance=0.0):
     """
     Add a new user to the users table.
     
@@ -14,18 +14,18 @@ def add_user(conn, username, password, initial_balance=0.0):
     - conn: SQLite connection object.
     - username: Username of the new user.
     - password: Password for the new user (will be hashed before storing).
-    - initial_balance: Initial balance for the user. Default is 0.0.
+    - balance: Initial balance for the user. Default is 0.0.
     
     Returns:
     - ID of the newly added user.
     """
     hashed_pwd = hash_password(password)
     query = """
-    INSERT INTO users(username, password, initial_balance)
+    INSERT INTO users(username, password, balance)
     VALUES (?, ?, ?)
     """
     cur = conn.cursor()
-    cur.execute(query, (username, hashed_pwd, initial_balance))
+    cur.execute(query, (username, hashed_pwd, balance))
     conn.commit()
     return cur.lastrowid
 

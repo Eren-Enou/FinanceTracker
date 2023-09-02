@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")  # Adds the parent directory to the sys.path
 
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import messagebox, simpledialog, ttk, Toplevel
 from database.db_setup import create_connection
 from src.transactions import add_transaction, get_transactions, delete_transaction
 from src.users import add_user, check_password, get_user_by_username
@@ -29,8 +29,8 @@ class FinanceApp:
         self.register_btn.pack(pady=10)
 
         # Button to add a new transaction
-        self.transaction_btn = ttk.Button(self.main_frame, text="Add Transaction", command=self.add_new_transaction)
-        self.transaction_btn.pack(pady=10)
+        # self.transaction_btn = ttk.Button(self.main_frame, text="Add Transaction", command=self.add_new_transaction)
+        # self.transaction_btn.pack(pady=10)
 
     def register_user(self):
     # Connect to the database
@@ -48,24 +48,48 @@ class FinanceApp:
         else:
             messagebox.showerror("Error", "Username and password are required!")
     
-    def add_new_transaction(self):
-        # Connect to the database
-        conn = create_connection()
+    # initial add new transaction before log in.
+    # def add_new_transaction(self):
+    #     # Connect to the database
+    #     conn = create_connection()
+
+    #     # Simple dialogs to input transaction details
+    #     user_id = simpledialog.askinteger("New Transaction", "Enter your user ID:")
+    #     trans_type = simpledialog.askstring("New Transaction", "Enter transaction type (income/expense):")
+
+    #     # Based on transaction type, determine the category options
+    #     category_options = []
+    #     if trans_type == "income":
+    #         category_options = ["salary", "freelance income", "rental income", "investments", "gifts", "misc income"]
+    #     elif trans_type == "expense":
+    #         category_options = ["housing", "food", "transportation", "health", "entertainment", "shopping", "education", "travel", "savings", "loans", "misc"]
+
+    #     # Create a new Toplevel window for category selection
+    #     category_window = Toplevel(self.root)
+    #     category_window.title("Select Category")
         
-        # Simple dialogs to input transaction details
-        user_id = simpledialog.askinteger("New Transaction", "Enter your user ID:")
-        category = simpledialog.askstring("New Transaction", "Enter transaction category:")
-        description = simpledialog.askstring("New Transaction", "Enter transaction description:")
-        amount = simpledialog.askfloat("New Transaction", "Enter transaction amount:")
-        date = simpledialog.askstring("New Transaction", "Enter transaction date (YYYY-MM-DD):")
-        trans_type = simpledialog.askstring("New Transaction", "Enter transaction type (income/expense):")
+    #     ttk.Label(category_window, text="Select Category:").pack(pady=10)
         
-        # Add transaction to the database
-        if all([user_id, category, description, amount, date, trans_type]):
-            add_transaction(conn, user_id, category, description, amount, date, trans_type)
-            messagebox.showinfo("Success", "Transaction added successfully!")
-        else:
-            messagebox.showerror("Error", "Please fill in all fields!")
+    #     category_var = tk.StringVar()
+    #     category_combobox = ttk.Combobox(category_window, values=category_options, textvariable=category_var)
+    #     category_combobox.pack(pady=10)
+    #     category_combobox.set("Choose a category")
+
+    #     ttk.Button(category_window, text="Submit", command=category_window.destroy).pack(pady=10)
+    #     category_window.mainloop()
+
+    #     category = category_var.get()
+
+    #     description = simpledialog.askstring("New Transaction", "Enter transaction description:")
+    #     amount = simpledialog.askfloat("New Transaction", "Enter transaction amount:")
+    #     date = simpledialog.askstring("New Transaction", "Enter transaction date (YYYY-MM-DD):")
+
+    #     # Add transaction to the database
+    #     if all([user_id, category, description, amount, date, trans_type]):
+    #         add_transaction(conn, user_id, category, description, amount, date, trans_type)
+    #         messagebox.showinfo("Success", "Transaction added successfully!")
+    #     else:
+    #         messagebox.showerror("Error", "Please fill in all fields!")
 
     def login_user(self):
         # Connect to the database
@@ -154,12 +178,44 @@ class FinanceApp:
         conn = create_connection()
         
         # Simple dialogs to input transaction details
-        category = simpledialog.askstring("New Transaction", "Enter transaction category:")
+        trans_type = simpledialog.askstring("New Transaction", "Enter transaction type (income/expense):")
+        
+         # Based on transaction type, determine the category options
+        category_options = []
+        if trans_type == "income":
+            category_options = ["salary", "freelance income", "rental income", "investments", "gifts", "misc income"]
+        elif trans_type == "expense":
+            category_options = ["housing", "food", "transportation", "health", "entertainment", "shopping", "education", "travel", "savings", "loans", "misc"]
+
+        # Create a new Toplevel window for category selection
+        category_window = Toplevel(self.root)
+        category_window.title("Select Category")
+        
+        ttk.Label(category_window, text="Select Category:").pack(pady=10)
+        
+        category_var = tk.StringVar()
+        category_combobox = ttk.Combobox(category_window, values=category_options, textvariable=category_var)
+        category_combobox.pack(pady=10)
+        category_combobox.set("Choose a category")
+
+        ttk.Button(category_window, text="Submit", command=lambda: self._continue_add_transaction(user_id, category_var, category_window, trans_type)).pack(pady=10)
+
+    def _continue_add_transaction(self, user_id, category_var, category_window, trans_type):
+        """Continue adding a transaction after the category has been selected."""
+        # Close the category selection window
+        category_window.destroy()
+
+        # Retrieve the category from the StringVar
+        category = category_var.get()
+
+        # Continue with the transaction dialogs
         description = simpledialog.askstring("New Transaction", "Enter transaction description:")
         amount = simpledialog.askfloat("New Transaction", "Enter transaction amount:")
         date = simpledialog.askstring("New Transaction", "Enter transaction date (YYYY-MM-DD):")
-        trans_type = simpledialog.askstring("New Transaction", "Enter transaction type (income/expense):")
-        
+
+        # Connect to the database
+        conn = create_connection()
+
         # Add transaction to the database
         if all([category, description, amount, date, trans_type]):
             add_transaction(conn, user_id, category, description, amount, date, trans_type)
