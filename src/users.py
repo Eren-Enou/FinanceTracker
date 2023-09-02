@@ -48,3 +48,34 @@ def get_user_by_username(conn, username):
     cur = conn.cursor()
     cur.execute(query, (username,))
     return cur.fetchone()
+
+def adjust_user_balance(conn, user_id, amount, trans_type):
+    """
+    Adjust the user's balance based on a transaction.
+
+    Parameters:
+    - conn: the database connection object.
+    - user_id: the ID of the user whose balance needs adjustment.
+    - amount: the amount of the transaction.
+    - trans_type: type of transaction ('income' or 'expense').
+    """
+    cur = conn.cursor()
+    
+    if trans_type == "income":
+        cur.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
+    elif trans_type == "expense":
+        cur.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (amount, user_id))
+
+    conn.commit()
+
+def delete_user(conn, user_id):
+    """
+    Delete a user from the database based on their user_id.
+
+    Parameters:
+    - conn: the database connection object.
+    - user_id: the ID of the user to be deleted.
+    """
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+    conn.commit()

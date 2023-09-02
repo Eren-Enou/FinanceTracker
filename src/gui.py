@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk, Toplevel
 from database.db_setup import create_connection
 from src.transactions import add_transaction, get_transactions, delete_transaction
-from src.users import add_user, check_password, get_user_by_username
+from src.users import add_user, check_password, get_user_by_username, adjust_user_balance, delete_user
 from src.visualizations import plot_monthly_data, plot_category_data
 
 
@@ -171,6 +171,36 @@ class FinanceApp:
         self.show_category_data_btn = ttk.Button(self.dashboard_frame, text="Show Category Data", command=lambda: plot_category_data(user[0]))
         self.show_category_data_btn.pack(pady=10)
 
+        # Button to access settings
+        self.settings_btn = ttk.Button(self.dashboard_frame, text="Settings", 
+                                    command=self.show_settings)
+        self.settings_btn.pack(pady=10)
+
+    def show_settings(self):
+        """Display settings options."""
+        self.settings_window = tk.Toplevel(self.root)
+        self.settings_window.title("Settings")
+        
+        # Logout Button
+        logout_btn = ttk.Button(self.settings_window, text="Logout", command=self.logout)
+        logout_btn.pack(pady=10)
+        
+        # Delete User Button
+        delete_user_btn = ttk.Button(self.settings_window, text="Delete User", 
+                                    command=lambda: self.delete_current_user(self.current_user_id))
+        delete_user_btn.pack(pady=10)
+
+    def logout(self):
+        """Logout the current user and return to the main interface."""
+        self.dashboard_frame.destroy()
+        
+        # Recreate main_frame
+        self.main_frame = ttk.Frame(self.root)
+        self.main_frame.pack(pady=20, padx=20)
+        
+        self.create_widgets()
+        messagebox.showinfo("Logged Out", "You have successfully logged out!")
+        self.settings_window.destroy()
 
     def dashboard_add_transaction(self, user_id):
         """Add a new transaction from the dashboard."""
@@ -219,6 +249,10 @@ class FinanceApp:
         # Add transaction to the database
         if all([category, description, amount, date, trans_type]):
             add_transaction(conn, user_id, category, description, amount, date, trans_type)
+            
+             # Adjust the user's balance
+            adjust_user_balance(conn, user_id, amount, trans_type)
+    
             messagebox.showinfo("Success", "Transaction added successfully!")
             # Refresh the dashboard to reflect the new transaction
             user = get_user_by_username(conn, self.current_username)
@@ -229,9 +263,40 @@ class FinanceApp:
     def delete_transaction_entry(self, transaction_id):
         """Delete a transaction and refresh the dashboard."""
         with create_connection() as conn:
-            delete_transaction(conn, transaction_id)
+            # Fetch the transaction details before deleting
+            cur = conn.cursor()
+            cur.execute("SELECT user_id, amount, type FROM transactions WHERE transaction_id = ?", (transaction_id,))
+            transaction = cur.fetchone()
+
+            # Adjust the balance in the opposite direction
+            if transaction:
+                user_id, amount, trans_type = transaction
+                if trans_type == "income":
+                    adjust_user_balance(conn, user_id, -amount, "income")
+                else:
+                    adjust_user_balance(conn, user_id, amount, "expense")
+                
+                # Now, delete the transaction
+                delete_transaction(conn, transaction_id)
+
+
+        # Refresh the dashboard
         user = get_user_by_username(create_connection(), self.current_username)
         self.show_user_dashboard(user)
+
+    def delete_current_user(self, user_id):
+        """Delete the current user and return to the main screen."""
+        user_response = messagebox.askyesno("Delete User", "Are you sure you want to delete your account? This cannot be undone.")
+        
+        if user_response:
+            with create_connection() as conn:
+                delete_user(conn, user_id)
+            
+            # Destroy the dashboard and return to the main interface
+            self.dashboard_frame.destroy()
+            self.create_widgets()
+            messagebox.showinfo("Deleted", "User account deleted successfully!")
+            self.settings_window.destroy()
 
 
 if __name__ == "__main__":
